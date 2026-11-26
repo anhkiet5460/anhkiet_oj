@@ -3,7 +3,7 @@
 // ============================================================
 window.APP_CONFIG = {
   // Lấy tại: Supabase -> Project Settings -> API
-  SUPABASE_URL: "https://ricigyrukfugidywhere.supabase.co/rest/v1/",
+  SUPABASE_URL: "https://ricigyrukfugidywhere.supabase.co",
   SUPABASE_ANON_KEY: "sb_publishable_ruAndSOVjrSr_QWWks3yRw_Kc3QYVu3",
 
   // Máy chấm đám mây miễn phí (Piston API)
