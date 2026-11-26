@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đăng nhập — C++ AI Mentor OJ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+
+  <div class="bg-white rounded-2xl shadow-lg border border-slate-200 max-w-md w-full p-7">
+    <div class="text-center mb-6">
+      <div class="w-12 h-12 rounded-xl bg-indigo-600 text-white font-bold text-lg flex items-center justify-center mx-auto mb-3">C++</div>
+      <h1 class="text-xl font-bold text-slate-900">C++ AI Mentor — Online Judge</h1>
+      <p class="text-xs text-slate-500 mt-1">Hệ thống Luyện tập &amp; Chấm bài lập trình trực tuyến</p>
+    </div>
+
+    <!-- Cảnh báo nếu chưa cấu hình Supabase -->
+    <div id="configWarning" class="hidden mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+      ⚠️ Chưa cấu hình <code>SUPABASE_URL</code> và <code>SUPABASE_ANON_KEY</code> trong tệp <code>js/config.js</code>. Vui lòng xem hướng dẫn trong <code>README_TRIEN_KHAI.md</code>.
+    </div>
+
+    <!-- Tabs Đăng nhập / Đăng ký -->
+    <div class="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-xl mb-5">
+      <button id="tabLoginBtn" onclick="switchAuthMode('login')" class="py-2 text-xs font-semibold rounded-lg bg-white text-indigo-700 shadow-sm cursor-pointer">Đăng nhập</button>
+      <button id="tabRegBtn" onclick="switchAuthMode('register')" class="py-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-800 cursor-pointer">Học sinh Đăng ký</button>
+    </div>
+
+    <div id="authAlert" class="hidden mb-4 p-3 rounded-lg text-xs"></div>
+
+    <!-- Form Đăng nhập -->
+    <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-3.5">
+      <div>
+        <label class="block text-xs font-medium text-slate-700 mb-1">Tên đăng nhập</label>
+        <input type="text" id="loginUsername" required placeholder="VD: nguyenvana hoặc admin" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-700 mb-1">Mật khẩu</label>
+        <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+      </div>
+      <button type="submit" id="loginSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg text-sm transition cursor-pointer">
+        Đăng nhập
+      </button>
+    </form>
+
+    <!-- Form Đăng ký Học sinh -->
+    <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-3">
+      <div>
+        <label class="block text-xs font-medium text-slate-700 mb-1">Họ và tên học sinh</label>
+        <input type="text" id="regFullName" required placeholder="VD: Nguyễn Văn An" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-700 mb-1">Lớp</label>
+        <input type="text" id="regClassName" required placeholder="VD: 10A1" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-700 mb-1">Tên đăng nhập (viết liền không dấu)</label>
+        <input type="text" id="regUsername" required placeholder="VD: an10a1" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-700 mb-1">Mật khẩu (tối thiểu 6 ký tự)</label>
+        <input type="password" id="regPassword" required minlength="6" placeholder="••••••••" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+      </div>
+      <button type="submit" id="regSubmitBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-sm transition cursor-pointer">
+        Tạo tài khoản Học sinh
+      </button>
+    </form>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/db.js"></script>
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      if (!isConfigured()) {
+        document.getElementById("configWarning").classList.remove("hidden");
+      }
+      const user = getCurrentUser();
+      if (user) {
+        window.location.href = user.role === "student" ? "student.html" : "teacher.html";
+      }
+    });
+
+    function showAuthAlert(type, msg) {
+      const el = document.getElementById("authAlert");
+      el.className = "mb-4 p-3 rounded-lg text-xs " + (
+        type === "ok" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"
+      );
+      el.textContent = msg;
+      el.classList.remove("hidden");
+    }
+
+    function switchAuthMode(mode) {
+      document.getElementById("authAlert").classList.add("hidden");
+      const isLogin = mode === "login";
+      document.getElementById("loginForm").classList.toggle("hidden", !isLogin);
+      document.getElementById("registerForm").classList.toggle("hidden", isLogin);
+      document.getElementById("tabLoginBtn").className = isLogin
+        ? "py-2 text-xs font-semibold rounded-lg bg-white text-indigo-700 shadow-sm cursor-pointer"
+        : "py-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-800 cursor-pointer";
+      document.getElementById("tabRegBtn").className = !isLogin
+        ? "py-2 text-xs font-semibold rounded-lg bg-white text-emerald-700 shadow-sm cursor-pointer"
+        : "py-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-800 cursor-pointer";
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById("loginSubmitBtn");
+      btn.disabled = true;
+      try {
+        const user = await apiLogin(
+          document.getElementById("loginUsername").value,
+          document.getElementById("loginPassword").value
+        );
+        setCurrentUser(user);
+        window.location.href = user.role === "student" ? "student.html" : "teacher.html";
+      } catch (err) {
+        showAuthAlert("err", err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const btn = document.getElementById("regSubmitBtn");
+      btn.disabled = true;
+      try {
+        const user = await apiRegisterStudent({
+          full_name: document.getElementById("regFullName").value,
+          class_name: document.getElementById("regClassName").value,
+          username: document.getElementById("regUsername").value,
+          password: document.getElementById("regPassword").value
+        });
+        setCurrentUser(user);
+        showAuthAlert("ok", "Đăng ký thành công! Đang chuyển vào trang luyện tập...");
+        setTimeout(() => { window.location.href = "student.html"; }, 800);
+      } catch (err) {
+        showAuthAlert("err", err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

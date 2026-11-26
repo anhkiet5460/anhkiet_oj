@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Luyện tập — C++ AI Mentor OJ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .font-mono-code { font-family: 'JetBrains Mono', monospace; }
+    .prose h1, .prose h2, .prose h3 { font-weight: 700; color: #0f172a; margin-top: 1rem; margin-bottom: 0.4rem; }
+    .prose p { margin-bottom: 0.6rem; color: #334155; line-height: 1.65; }
+    .prose ul, .prose ol { margin-left: 1.25rem; margin-bottom: 0.6rem; list-style: disc; }
+    .prose pre { background: #0f172a; color: #e2e8f0; padding: 0.75rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.85rem; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+
+  <!-- HEADER -->
+  <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white font-bold text-sm flex items-center justify-center">OJ</div>
+      <div>
+        <h1 class="font-bold text-slate-900 text-sm">C++ AI Mentor — Luyện tập</h1>
+        <p id="studentInfoText" class="text-xs text-slate-500"></p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="showProblemList()" id="backToListBtn" class="hidden px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer">
+        ← Danh sách bài tập
+      </button>
+      <button onclick="logoutUser()" class="px-3 py-1.5 text-xs font-medium bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg cursor-pointer">
+        Đăng xuất
+      </button>
+    </div>
+  </header>
+
+  <!-- MÀN HÌNH 1: DANH SÁCH BÀI TẬP -->
+  <main id="viewList" class="flex-1 overflow-y-auto p-6 max-w-6xl w-full mx-auto">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">Danh sách bài tập lập trình</h2>
+        <p class="text-xs text-slate-500">Hệ thống tự động ghi nhận điểm của lần chấm cao điểm nhất.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <input type="text" id="searchProblem" oninput="renderProblemList()" placeholder="🔍 Tìm mã hoặc tên bài..." class="text-xs px-3 py-2 border border-slate-300 rounded-lg bg-white outline-none focus:ring-2 focus:ring-emerald-500" />
+        <select id="filterDifficulty" onchange="renderProblemList()" class="text-xs px-3 py-2 border border-slate-300 rounded-lg bg-white outline-none">
+          <option value="">Tất cả độ khó</option>
+          <option value="Dễ">Dễ</option>
+          <option value="Trung bình">Trung bình</option>
+          <option value="Khó">Khó</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <table class="w-full text-left border-collapse text-xs">
+        <thead class="bg-slate-50 border-b border-slate-200 text-slate-600">
+          <tr>
+            <th class="py-3 px-4 w-28">Mã bài</th>
+            <th class="py-3 px-4">Tên bài tập</th>
+            <th class="py-3 px-4 w-36">Phân dạng</th>
+            <th class="py-3 px-4 w-28">Độ khó</th>
+            <th class="py-3 px-4 w-32 text-center">Điểm cao nhất</th>
+            <th class="py-3 px-4 w-28 text-center">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="problemTableBody" class="divide-y divide-slate-100">
+          <tr><td colspan="6" class="py-10 text-center text-slate-400">Đang tải danh sách bài tập...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- MÀN HÌNH 2: KHÔNG GIAN LÀM BÀI (2 CỘT) -->
+  <main id="viewSolve" class="hidden flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 p-5 overflow-y-auto">
+    <!-- Cột trái: Đề bài & Test mẫu -->
+    <div class="lg:col-span-6 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-200 bg-slate-50/70">
+        <div class="flex items-center justify-between gap-2">
+          <h2 id="probTitle" class="font-bold text-base text-slate-900"></h2>
+          <span id="probMaxScoreBadge" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700"></span>
+        </div>
+        <div id="probMeta" class="flex flex-wrap gap-2 mt-1.5 text-[11px] text-slate-600"></div>
+      </div>
+
+      <div class="flex-1 p-5 overflow-y-auto space-y-5">
+        <div id="probContent" class="prose max-w-none text-sm"></div>
+
+        <div>
+          <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Ví dụ minh họa (Test mẫu)</h3>
+          <div id="sampleTestsContainer" class="space-y-3"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cột phải: Nộp code & Kết quả chấm -->
+    <div class="lg:col-span-6 flex flex-col gap-4">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex-1 flex flex-col">
+        <div class="flex items-center justify-between mb-2.5">
+          <span class="font-semibold text-sm text-slate-800">Nộp bài làm</span>
+          <div class="flex items-center gap-2">
+            <select id="submitLang" class="text-xs border border-slate-200 rounded-md px-2.5 py-1 bg-slate-50 text-slate-700 outline-none">
+              <option value="cpp">C++ (GCC 17)</option>
+              <option value="python">Python 3</option>
+            </select>
+            <label class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-md cursor-pointer font-medium">
+              📂 Tải file .cpp / .py
+              <input type="file" id="studentCodeFile" accept=".cpp,.c,.py,.txt" class="hidden" />
+            </label>
+          </div>
+        </div>
+
+        <textarea id="studentCodeInput" rows="12" placeholder="Dán mã nguồn C++ hoặc Python của bạn vào đây..." class="w-full flex-1 font-mono-code text-xs p-3.5 bg-slate-900 text-slate-100 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none resize-y leading-relaxed"></textarea>
+
+        <button id="submitCodeBtn" onclick="handleSubmitCode()" class="mt-3 w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-semibold py-2.5 rounded-lg text-sm transition cursor-pointer">
+          🚀 Nộp bài &amp; Chấm trực tiếp
+        </button>
+      </div>
+
+      <!-- Kết quả chấm -->
+      <div id="judgeResultBox" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-semibold text-sm text-slate-800">Kết quả chấm bài</span>
+          <span id="judgeSummaryBadge" class="text-xs font-bold px-2.5 py-1 rounded-full"></span>
+        </div>
+        <div id="judgeProgressText" class="text-xs text-indigo-600 mb-2"></div>
+        <pre id="compileErrorBox" class="hidden p-3 bg-rose-950 text-rose-200 text-xs rounded-lg overflow-x-auto font-mono-code mb-2"></pre>
+        <div id="judgeTestsGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/judge.js"></script>
+  <script>
+    let currentUser = null;
+    let allProblems = [];
+    let myBestScores = {};
+    let activeProblem = null;
+    let activeTestCases = [];
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      currentUser = requireRole(["student"]);
+      if (!currentUser) return;
+      document.getElementById("studentInfoText").textContent = `${currentUser.full_name} — Lớp ${currentUser.class_name}`;
+      await loadStudentDashboard();
+    });
+
+    async function loadStudentDashboard() {
+      try {
+        const [problems, subs] = await Promise.all([
+          apiListProblems(true),
+          apiListSubmissionsByUser(currentUser.id)
+        ]);
+        allProblems = problems;
+        myBestScores = {};
+        for (const s of subs) {
+          const prev = myBestScores[s.problem_id];
+          if (!prev || Number(s.score) > Number(prev.score)) {
+            myBestScores[s.problem_id] = s;
+          }
+        }
+        renderProblemList();
+      } catch (err) {
+        document.getElementById("problemTableBody").innerHTML =
+          `<tr><td colspan="6" class="py-8 text-center text-rose-600">Lỗi tải dữ liệu: ${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    function renderProblemList() {
+      const q = document.getElementById("searchProblem").value.trim().toLowerCase();
+      const diff = document.getElementById("filterDifficulty").value;
+      const filtered = allProblems.filter(p => {
+        if (diff && p.difficulty !== diff) return false;
+        if (q && !(p.code + " " + p.title + " " + p.topic).toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      const tbody = document.getElementById("problemTableBody");
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-10 text-center text-slate-400">Chưa có bài tập nào phù hợp.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(p => {
+        const best = myBestScores[p.id];
+        const maxS = Number(p.max_score || 10);
+        let scoreBadge = `<span class="text-slate-400">Chưa làm</span>`;
+        if (best) {
+          const isFull = Number(best.score) >= maxS;
+          scoreBadge = `<span class="px-2 py-0.5 rounded-full font-semibold ${isFull ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${best.score} / ${maxS}</span>`;
+        }
+        const diffClass = p.difficulty === "Dễ" ? "bg-emerald-50 text-emerald-700" : (p.difficulty === "Khó" ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-700");
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="py-3 px-4 font-mono-code font-semibold text-indigo-700">${escapeHtml(p.code)}</td>
+            <td class="py-3 px-4 font-semibold text-slate-800">${escapeHtml(p.title)}</td>
+            <td class="py-3 px-4 text-slate-600">${escapeHtml(p.topic)}</td>
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded font-medium ${diffClass}">${escapeHtml(p.difficulty)}</span></td>
+            <td class="py-3 px-4 text-center">${scoreBadge}</td>
+            <td class="py-3 px-4 text-center">
+              <button onclick="openProblem('${p.id}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg cursor-pointer">Làm bài</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    async function openProblem(problemId) {
+      activeProblem = allProblems.find(p => p.id === problemId);
+      if (!activeProblem) return;
+
+      document.getElementById("viewList").classList.add("hidden");
+      document.getElementById("viewSolve").classList.remove("hidden");
+      document.getElementById("backToListBtn").classList.remove("hidden");
+      document.getElementById("judgeResultBox").classList.add("hidden");
+      document.getElementById("studentCodeInput").value = "";
+
+      document.getElementById("probTitle").textContent = `[${activeProblem.code}] ${activeProblem.title}`;
+      document.getElementById("probMaxScoreBadge").textContent = `Điểm tối đa: ${activeProblem.max_score}`;
+
+      const ioLabel = activeProblem.io_type === "FILE"
+        ? `📄 Tệp tin: ${activeProblem.input_file} / ${activeProblem.output_file}`
+        : `⌨️ Nhập xuất chuẩn (cin/cout)`;
+      document.getElementById("probMeta").innerHTML = `
+        <span class="bg-slate-200/70 px-2 py-0.5 rounded">🏷️ ${escapeHtml(activeProblem.topic)}</span>
+        <span class="bg-slate-200/70 px-2 py-0.5 rounded">⏱️ ${activeProblem.time_limit}s</span>
+        <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-medium">${escapeHtml(ioLabel)}</span>
+      `;
+
+      renderMarkdownWithMath(document.getElementById("probContent"), activeProblem.content_md);
+
+      const sampleEl = document.getElementById("sampleTestsContainer");
+      sampleEl.innerHTML = `<div class="text-xs text-slate-400">Đang tải test mẫu...</div>`;
+      activeTestCases = await apiGetTestCases(activeProblem.id);
+      const samples = activeTestCases.filter(t => t.is_sample);
+
+      if (samples.length === 0) {
+        sampleEl.innerHTML = `<div class="text-xs text-slate-400">Không có test mẫu riêng.</div>`;
+      } else {
+        sampleEl.innerHTML = samples.map((tc, i) => `
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+              <div class="font-semibold text-slate-600 mb-1">Input ${i + 1}</div>
+              <pre class="font-mono-code text-slate-800 whitespace-pre-wrap">${escapeHtml(tc.input_data)}</pre>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+              <div class="font-semibold text-slate-600 mb-1">Output ${i + 1}</div>
+              <pre class="font-mono-code text-slate-800 whitespace-pre-wrap">${escapeHtml(tc.expected_output)}</pre>
+            </div>
+          </div>
+        `).join("");
+      }
+    }
+
+    function showProblemList() {
+      document.getElementById("viewSolve").classList.add("hidden");
+      document.getElementById("viewList").classList.remove("hidden");
+      document.getElementById("backToListBtn").classList.add("hidden");
+      loadStudentDashboard();
+    }
+
+    document.getElementById("studentCodeFile").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.name.endsWith(".py")) document.getElementById("submitLang").value = "python";
+      else document.getElementById("submitLang").value = "cpp";
+      const reader = new FileReader();
+      reader.onload = () => { document.getElementById("studentCodeInput").value = reader.result; };
+      reader.readAsText(file);
+      e.target.value = "";
+    });
+
+    async function handleSubmitCode() {
+      const sourceCode = document.getElementById("studentCodeInput").value.trim();
+      const language = document.getElementById("submitLang").value;
+      if (!sourceCode) { alert("Vui lòng nhập hoặc tải lên mã nguồn trước khi nộp."); return; }
+      if (activeTestCases.length === 0) { alert("Bài tập này chưa có bộ test case."); return; }
+
+      const btn = document.getElementById("submitCodeBtn");
+      btn.disabled = true;
+      document.getElementById("judgeResultBox").classList.remove("hidden");
+      document.getElementById("compileErrorBox").classList.add("hidden");
+      document.getElementById("judgeTestsGrid").innerHTML = "";
+      document.getElementById("judgeSummaryBadge").textContent = "Đang chấm...";
+      document.getElementById("judgeSummaryBadge").className = "text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700";
+
+      try {
+        const res = await gradeSubmission({
+          problem: activeProblem,
+          testCases: activeTestCases,
+          language,
+          sourceCode,
+          onProgress: (cur, total, name) => {
+            document.getElementById("judgeProgressText").textContent = `Đang chạy ${name} (${cur}/${total})...`;
+          }
+        });
+
+        document.getElementById("judgeProgressText").textContent = `Hoàn tất: Đúng ${res.passed}/${res.total} test.`;
+        const badge = document.getElementById("judgeSummaryBadge");
+        badge.textContent = `${res.overallStatus} — ${res.score} / ${res.maxScore} điểm`;
+        badge.className = "text-xs font-bold px-2.5 py-1 rounded-full " + (
+          res.overallStatus === "AC" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+        );
+
+        if (res.compileError) {
+          const ce = document.getElementById("compileErrorBox");
+          ce.textContent = res.compileError;
+          ce.classList.remove("hidden");
+        } else {
+          document.getElementById("judgeTestsGrid").innerHTML = res.results.map(r => {
+            const cls = r.status === "AC" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-rose-50 border-rose-200 text-rose-700";
+            return `<div class="p-2 rounded-lg border text-xs font-mono-code flex justify-between ${cls}"><span>${escapeHtml(r.test_name)}</span><strong>${r.status}</strong></div>`;
+          }).join("");
+        }
+
+        // Lưu kết quả lên Supabase
+        await apiCreateSubmission({
+          problem_id: activeProblem.id,
+          user_id: currentUser.id,
+          language,
+          source_code: sourceCode,
+          passed_tests: res.passed,
+          total_tests: res.total,
+          score: res.score,
+          max_score: res.maxScore,
+          status: res.overallStatus,
+          details_json: res.results
+        });
+      } catch (err) {
+        document.getElementById("judgeProgressText").textContent = "Lỗi: " + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
