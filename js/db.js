@@ -24,7 +24,6 @@ function getDB() {
   return _supabaseClient;
 }
 
-// Băm mật khẩu bằng SHA-256 trên trình duyệt
 async function hashPassword(plainText) {
   const data = new TextEncoder().encode(plainText);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -33,8 +32,7 @@ async function hashPassword(plainText) {
     .join("");
 }
 
-// Quản lý phiên đăng nhập cục bộ
-const SESSION_KEY = "oj_current_user_v1";
+const SESSION_KEY = "oj_current_user_v2";
 
 function getCurrentUser() {
   try {
@@ -66,19 +64,30 @@ function requireRole(allowedRoles) {
   return user;
 }
 
-// --- NGƯỜI DÙNG (AUTH & QUẢN LÝ) ---
-async function apiRegisterStudent({ username, password, full_name, class_name }) {
+// --- NGƯỜI DÙNG (AUTH, ĐĂNG KÝ GV/HS & QUẢN LÝ) ---
+async function apiRegisterAccount({ username, password, full_name, class_name, role }) {
   const db = getDB();
   const cleanUser = username.trim().toLowerCase();
   if (!/^[a-z0-9_.-]{3,30}$/.test(cleanUser)) {
     throw new Error("Tên đăng nhập chỉ gồm chữ thường, số, dấu chấm/gạch dưới (3–30 ký tự).");
   }
+  const safeRole = role === "teacher" ? "teacher" : "student";
+  const initialStatus = safeRole === "teacher" ? "pending" : "active";
   const password_hash = await hashPassword(password);
+
   const { data, error } = await db
     .from("users")
-    .insert([{ username: cleanUser, password_hash, full_name: full_name.trim(), class_name: class_name.trim(), role: "student", status: "active" }])
+    .insert([{
+      username: cleanUser,
+      password_hash,
+      full_name: full_name.trim(),
+      class_name: class_name.trim(),
+      role: safeRole,
+      status: initialStatus
+    }])
     .select("id, username, full_name, class_name, role, status")
     .single();
+
   if (error) {
     if (error.code === "23505") throw new Error("Tên đăng nhập này đã tồn tại.");
     throw new Error(error.message);
@@ -96,9 +105,38 @@ async function apiLogin(username, password) {
     .eq("username", cleanUser)
     .eq("password_hash", password_hash)
     .maybeSingle();
+
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Sai tên đăng nhập hoặc mật khẩu.");
-  if (data.status === "locked") throw new Error("Tài khoản đã bị khóa. Vui lòng liên hệ giáo viên.");
+  if (data.status === "pending") {
+    throw new Error("Tài khoản Giáo viên đang chờ Admin phê duyệt. Vui lòng thử lại sau khi được duyệt.");
+  }
+  if (data.status === "locked") {
+    throw new Error("Tài khoản đã bị khóa. Vui lòng liên hệ Quản trị viên.");
+  }
+  return data;
+}
+
+async function apiUpdateOwnProfile(userId, { full_name, class_name, newPassword }) {
+  const db = getDB();
+  const patch = {
+    full_name: full_name.trim(),
+    class_name: class_name.trim()
+  };
+  if (newPassword && newPassword.trim().length > 0) {
+    if (newPassword.trim().length < 6) {
+      throw new Error("Mật khẩu mới phải có tối thiểu 6 ký tự.");
+    }
+    patch.password_hash = await hashPassword(newPassword.trim());
+  }
+  const { data, error } = await db
+    .from("users")
+    .update(patch)
+    .eq("id", userId)
+    .select("id, username, full_name, class_name, role, status")
+    .single();
+  if (error) throw new Error(error.message);
+  setCurrentUser(data);
   return data;
 }
 
@@ -216,7 +254,7 @@ async function apiListSubmissionsByUser(userId) {
   const db = getDB();
   const { data, error } = await db
     .from("submissions")
-    .select("id, problem_id, language, passed_tests, total_tests, score, max_score, status, created_at")
+    .select("id, problem_id, language, source_code, passed_tests, total_tests, score, max_score, status, details_json, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
@@ -237,7 +275,6 @@ async function apiListAllSubmissions() {
   return data || [];
 }
 
-// Tính bảng điểm cao nhất theo từng (học sinh, bài tập)
 function computeHighestScoreBoard(submissions) {
   const bestMap = new Map();
   for (const sub of submissions) {
@@ -251,7 +288,6 @@ function computeHighestScoreBoard(submissions) {
   return Array.from(bestMap.values());
 }
 
-// Tiện ích chung: Render Markdown + KaTeX
 function renderMarkdownWithMath(containerEl, mdText) {
   containerEl.innerHTML = window.marked ? marked.parse(mdText || "") : (mdText || "");
   if (window.renderMathInElement) {

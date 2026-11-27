@@ -3,142 +3,387 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Đăng nhập — C++ AI Mentor OJ</title>
+  <title>Trang chủ — C++ AI Mentor Online Judge</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>body { font-family: 'Inter', sans-serif; }</style>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .font-mono-code { font-family: 'JetBrains Mono', monospace; }
+    .prose p { margin-bottom: 0.5rem; line-height: 1.6; }
+  </style>
 </head>
-<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-  <div class="bg-white rounded-2xl shadow-lg border border-slate-200 max-w-md w-full p-7">
-    <div class="text-center mb-6">
-      <div class="w-12 h-12 rounded-xl bg-indigo-600 text-white font-bold text-lg flex items-center justify-center mx-auto mb-3">C++</div>
-      <h1 class="text-xl font-bold text-slate-900">C++ AI Mentor — Online Judge</h1>
-      <p class="text-xs text-slate-500 mt-1">Hệ thống Luyện tập &amp; Chấm bài lập trình trực tuyến</p>
+  <!-- THANH ĐIỀU HƯỚNG -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white font-bold text-sm flex items-center justify-center">C++</div>
+        <div>
+          <h1 class="font-bold text-slate-900 text-base leading-tight">C++ AI Mentor — Online Judge</h1>
+          <p class="text-[11px] text-slate-500">Nền tảng luyện tập lập trình, chấm Test Case &amp; hỗ trợ giảng dạy AI</p>
+        </div>
+      </div>
+
+      <div id="sessionBar" class="flex items-center gap-2">
+        <a href="#problems-section" class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-indigo-700 hover:bg-slate-100 rounded-lg transition">
+          Danh sách bài tập
+        </a>
+        <a href="#auth-section" class="px-3.5 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition">
+          Đăng nhập / Đăng ký
+        </a>
+      </div>
     </div>
+  </header>
 
-    <!-- Cảnh báo nếu chưa cấu hình Supabase -->
-    <div id="configWarning" class="hidden mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
-      ⚠️ Chưa cấu hình <code>SUPABASE_URL</code> và <code>SUPABASE_ANON_KEY</code> trong tệp <code>js/config.js</code>. Vui lòng xem hướng dẫn trong <code>README_TRIEN_KHAI.md</code>.
+  <!-- BANNER -->
+  <section class="bg-gradient-to-r from-indigo-700 via-indigo-600 to-emerald-600 text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-7 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+      <div class="lg:col-span-8 space-y-2">
+        <span class="inline-block text-[11px] font-semibold uppercase tracking-wider bg-white/15 px-2.5 py-1 rounded-full">
+          Cổng luyện tập &amp; chấm bài trực tuyến
+        </span>
+        <h2 class="text-2xl sm:text-3xl font-bold leading-snug">
+          Luyện tư duy thuật toán &amp; chấm bài tự động theo Test Case
+        </h2>
+        <p class="text-xs sm:text-sm text-indigo-100 max-w-2xl leading-relaxed">
+          Khám phá kho bài tập phân dạng theo chủ đề, đăng nhập hoặc đăng ký tài khoản để nộp mã nguồn C++/Python, chấm từng test case và tích lũy điểm cao nhất.
+        </p>
+      </div>
+      <div class="lg:col-span-4 grid grid-cols-2 gap-3 text-center">
+        <div class="bg-white/10 backdrop-blur-xs rounded-xl p-3.5 border border-white/15">
+          <div id="statProblemCount" class="text-2xl font-bold font-mono-code">0</div>
+          <div class="text-[11px] text-indigo-100 mt-0.5">Bài tập đang mở</div>
+        </div>
+        <div class="bg-white/10 backdrop-blur-xs rounded-xl p-3.5 border border-white/15">
+          <div class="text-2xl font-bold font-mono-code">C++ / Py</div>
+          <div class="text-[11px] text-indigo-100 mt-0.5">Chấm tự động</div>
+        </div>
+      </div>
     </div>
+  </section>
 
-    <!-- Tabs Đăng nhập / Đăng ký -->
-    <div class="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-xl mb-5">
-      <button id="tabLoginBtn" onclick="switchAuthMode('login')" class="py-2 text-xs font-semibold rounded-lg bg-white text-indigo-700 shadow-sm cursor-pointer">Đăng nhập</button>
-      <button id="tabRegBtn" onclick="switchAuthMode('register')" class="py-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-800 cursor-pointer">Học sinh Đăng ký</button>
+  <!-- NỘI DUNG CHÍNH -->
+  <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-start">
+
+    <!-- CỘT TRÁI: DANH SÁCH BÀI TẬP -->
+    <section id="problems-section" class="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Danh sách bài tập</h3>
+          <p class="text-xs text-slate-500">Bấm "Xem đề" để đọc nội dung; đăng nhập tài khoản học sinh để nộp bài.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <input type="text" id="homeSearchInput" oninput="filterHomeProblems()" placeholder="🔍 Tìm mã, tên, dạng bài..." class="text-xs px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-44 sm:w-52" />
+          <select id="homeTopicFilter" onchange="filterHomeProblems()" class="text-xs px-2.5 py-2 border border-slate-300 rounded-lg bg-white outline-none">
+            <option value="">Tất cả dạng bài</option>
+          </select>
+          <select id="homeDiffFilter" onchange="filterHomeProblems()" class="text-xs px-2.5 py-2 border border-slate-300 rounded-lg bg-white outline-none">
+            <option value="">Mọi độ khó</option>
+            <option value="Dễ">Dễ</option>
+            <option value="Trung bình">Trung bình</option>
+            <option value="Khó">Khó</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead class="bg-slate-50 border-b border-slate-200 text-slate-600">
+            <tr>
+              <th class="py-3 px-4 w-24">Mã bài</th>
+              <th class="py-3 px-4">Tên bài tập</th>
+              <th class="py-3 px-4 w-36">Phân dạng</th>
+              <th class="py-3 px-4 w-24">Độ khó</th>
+              <th class="py-3 px-4 w-24 text-center">Điểm tối đa</th>
+              <th class="py-3 px-4 w-28 text-center">Chi tiết</th>
+            </tr>
+          </thead>
+          <tbody id="homeProblemBody" class="divide-y divide-slate-100">
+            <tr>
+              <td colspan="6" class="py-10 text-center text-slate-400">Đang tải danh sách bài tập...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- CỘT PHẢI: Ô ĐĂNG NHẬP / ĐĂNG KÝ -->
+    <aside id="auth-section" class="lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sticky top-20">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Tài khoản hệ thống</h3>
+          <p class="text-xs text-slate-500">Đăng nhập hoặc đăng ký để bắt đầu làm bài</p>
+        </div>
+        <span class="text-[11px] font-semibold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded">OJ Portal</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-xl mb-4">
+        <button type="button" id="homeTabLogin" onclick="setHomeAuthTab('login')" class="py-2 text-xs font-semibold rounded-lg bg-white text-indigo-700 shadow-sm cursor-pointer">
+          Đăng nhập
+        </button>
+        <button type="button" id="homeTabRegister" onclick="setHomeAuthTab('register')" class="py-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-800 cursor-pointer">
+          Đăng ký
+        </button>
+      </div>
+
+      <div id="homeAuthAlert" class="hidden mb-3.5 p-3 rounded-lg text-xs leading-relaxed"></div>
+
+      <!-- Form Đăng nhập -->
+      <form id="homeLoginForm" onsubmit="submitHomeLogin(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Tên đăng nhập</label>
+          <input type="text" id="homeLoginUser" required placeholder="Nhập tên đăng nhập" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Mật khẩu</label>
+          <input type="password" id="homeLoginPass" required placeholder="Nhập mật khẩu" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        </div>
+        <button type="submit" id="homeLoginBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-2.5 rounded-lg text-xs sm:text-sm transition cursor-pointer">
+          Đăng nhập vào hệ thống
+        </button>
+      </form>
+
+      <!-- Form Đăng ký -->
+      <form id="homeRegisterForm" onsubmit="submitHomeRegister(event)" class="hidden space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Vai trò đăng ký</label>
+          <select id="homeRegRole" onchange="updateRegisterHint()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+            <option value="student">Học sinh (Kích hoạt sử dụng ngay)</option>
+            <option value="teacher">Giáo viên (Chờ Admin duyệt trước khi dùng)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Họ và tên</label>
+          <input type="text" id="homeRegName" required placeholder="VD: Nguyễn Văn An" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+        </div>
+        <div>
+          <label id="homeRegClassLabel" class="block text-xs font-medium text-slate-700 mb-1">Lớp</label>
+          <input type="text" id="homeRegClass" required placeholder="VD: 10A1" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Tên đăng nhập (viết liền không dấu)</label>
+          <input type="text" id="homeRegUser" required placeholder="VD: an10a1" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Mật khẩu (tối thiểu 6 ký tự)</label>
+          <input type="password" id="homeRegPass" required minlength="6" placeholder="••••••••" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+        </div>
+        <button type="submit" id="homeRegBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-semibold py-2.5 rounded-lg text-xs sm:text-sm transition cursor-pointer">
+          Đăng ký tài khoản
+        </button>
+      </form>
+    </aside>
+  </main>
+
+  <!-- MODAL XEM NHANH ĐỀ BÀI -->
+  <div id="previewProblemModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-xl border border-slate-200 max-h-[85vh] flex flex-col">
+      <div class="flex items-start justify-between gap-3 pb-3 border-b border-slate-200">
+        <div>
+          <span id="prevProbCode" class="text-[11px] font-mono-code font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded"></span>
+          <h3 id="prevProbTitle" class="text-base font-bold text-slate-900 mt-1"></h3>
+        </div>
+        <button type="button" onclick="closePreviewModal()" class="text-slate-400 hover:text-rose-600 text-sm px-2 py-1 cursor-pointer">✕</button>
+      </div>
+      <div id="prevProbMeta" class="flex flex-wrap gap-2 py-2.5 text-[11px] text-slate-600 border-b border-slate-100"></div>
+      <div id="prevProbBody" class="flex-1 overflow-y-auto py-4 prose max-w-none text-xs sm:text-sm text-slate-700"></div>
+      <div class="pt-3 border-t border-slate-200 flex items-center justify-between gap-2">
+        <span class="text-xs text-slate-500">Đăng nhập để nộp code và lưu điểm.</span>
+        <div class="flex gap-2">
+          <button type="button" onclick="closePreviewModal()" class="px-3.5 py-2 text-xs font-medium border border-slate-300 text-slate-600 rounded-lg cursor-pointer">Đóng</button>
+          <a href="#auth-section" onclick="closePreviewModal()" class="px-4 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">
+            Đăng nhập làm bài
+          </a>
+        </div>
+      </div>
     </div>
-
-    <div id="authAlert" class="hidden mb-4 p-3 rounded-lg text-xs"></div>
-
-    <!-- Form Đăng nhập -->
-    <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-3.5">
-      <div>
-        <label class="block text-xs font-medium text-slate-700 mb-1">Tên đăng nhập</label>
-        <input type="text" id="loginUsername" required placeholder="VD: nguyenvana hoặc admin" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-slate-700 mb-1">Mật khẩu</label>
-        <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-      </div>
-      <button type="submit" id="loginSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg text-sm transition cursor-pointer">
-        Đăng nhập
-      </button>
-    </form>
-
-    <!-- Form Đăng ký Học sinh -->
-    <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-3">
-      <div>
-        <label class="block text-xs font-medium text-slate-700 mb-1">Họ và tên học sinh</label>
-        <input type="text" id="regFullName" required placeholder="VD: Nguyễn Văn An" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-slate-700 mb-1">Lớp</label>
-        <input type="text" id="regClassName" required placeholder="VD: 10A1" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-slate-700 mb-1">Tên đăng nhập (viết liền không dấu)</label>
-        <input type="text" id="regUsername" required placeholder="VD: an10a1" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-slate-700 mb-1">Mật khẩu (tối thiểu 6 ký tự)</label>
-        <input type="password" id="regPassword" required minlength="6" placeholder="••••••••" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-      </div>
-      <button type="submit" id="regSubmitBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-sm transition cursor-pointer">
-        Tạo tài khoản Học sinh
-      </button>
-    </form>
   </div>
 
-  <script src="js/config.js"></script>
-  <script src="js/db.js"></script>
+  <script src="js/config.js?v=2"></script>
+  <script src="js/db.js?v=2"></script>
   <script>
-    window.addEventListener("DOMContentLoaded", () => {
-      if (!isConfigured()) {
-        document.getElementById("configWarning").classList.remove("hidden");
+    let homeProblems = [];
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      const activeUser = getCurrentUser();
+      if (activeUser) {
+        const targetPage = activeUser.role === "student" ? "student.html" : "teacher.html";
+        document.getElementById("sessionBar").innerHTML = `
+          <span class="text-xs text-slate-600 font-medium hidden sm:inline">Xin chào, <strong>${escapeHtml(activeUser.full_name)}</strong></span>
+          <a href="${targetPage}" class="px-3.5 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition">
+            Vào khu vực làm việc →
+          </a>
+          <button type="button" onclick="logoutUser()" class="px-3 py-1.5 text-xs font-medium bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition cursor-pointer">
+            Đăng xuất
+          </button>
+        `;
       }
-      const user = getCurrentUser();
-      if (user) {
-        window.location.href = user.role === "student" ? "student.html" : "teacher.html";
-      }
+      await loadHomeProblems();
     });
 
-    function showAuthAlert(type, msg) {
-      const el = document.getElementById("authAlert");
-      el.className = "mb-4 p-3 rounded-lg text-xs " + (
-        type === "ok" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"
+    async function loadHomeProblems() {
+      try {
+        homeProblems = await apiListProblems(true);
+        document.getElementById("statProblemCount").textContent = homeProblems.length;
+
+        const topics = [...new Set(homeProblems.map(p => p.topic).filter(Boolean))].sort((a, b) => a.localeCompare(b, "vi"));
+        const topicSelect = document.getElementById("homeTopicFilter");
+        topicSelect.innerHTML = `<option value="">Tất cả dạng bài</option>` +
+          topics.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
+
+        filterHomeProblems();
+      } catch (err) {
+        document.getElementById("homeProblemBody").innerHTML =
+          `<tr><td colspan="6" class="py-10 text-center text-rose-600">Không thể tải danh sách bài tập: ${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    function filterHomeProblems() {
+      const q = (document.getElementById("homeSearchInput").value || "").trim().toLowerCase();
+      const topic = document.getElementById("homeTopicFilter").value;
+      const diff = document.getElementById("homeDiffFilter").value;
+
+      const list = homeProblems.filter(p => {
+        if (topic && p.topic !== topic) return false;
+        if (diff && p.difficulty !== diff) return false;
+        if (q && !(`${p.code} ${p.title} ${p.topic}`).toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      const tbody = document.getElementById("homeProblemBody");
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-10 text-center text-slate-400">Chưa có bài tập phù hợp với bộ lọc.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(p => {
+        const diffCls = p.difficulty === "Dễ"
+          ? "bg-emerald-50 text-emerald-700"
+          : (p.difficulty === "Khó" ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-700");
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4 font-mono-code font-semibold text-indigo-700">${escapeHtml(p.code)}</td>
+            <td class="py-3 px-4 font-semibold text-slate-800">${escapeHtml(p.title)}</td>
+            <td class="py-3 px-4 text-slate-600">${escapeHtml(p.topic || "Cơ bản")}</td>
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded font-medium ${diffCls}">${escapeHtml(p.difficulty || "Dễ")}</span></td>
+            <td class="py-3 px-4 text-center font-mono-code font-semibold text-slate-700">${Number(p.max_score || 10)}</td>
+            <td class="py-3 px-4 text-center">
+              <button type="button" onclick="openPreviewModal('${p.id}')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg transition cursor-pointer">
+                Xem đề
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function openPreviewModal(problemId) {
+      const p = homeProblems.find(x => x.id === problemId);
+      if (!p) return;
+      document.getElementById("prevProbCode").textContent = p.code;
+      document.getElementById("prevProbTitle").textContent = p.title;
+      const ioText = p.io_type === "FILE"
+        ? `File I/O (${p.input_file || "INP"} / ${p.output_file || "OUT"})`
+        : "Chuẩn (cin/cout)";
+      document.getElementById("prevProbMeta").innerHTML = `
+        <span class="bg-slate-100 px-2 py-0.5 rounded">Dạng: ${escapeHtml(p.topic || "Cơ bản")}</span>
+        <span class="bg-slate-100 px-2 py-0.5 rounded">Độ khó: ${escapeHtml(p.difficulty || "Dễ")}</span>
+        <span class="bg-slate-100 px-2 py-0.5 rounded">Giới hạn: ${p.time_limit || 1}s</span>
+        <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-medium">${escapeHtml(ioText)}</span>
+      `;
+      renderMarkdownWithMath(document.getElementById("prevProbBody"), p.content_md);
+      document.getElementById("previewProblemModal").classList.remove("hidden");
+    }
+
+    function closePreviewModal() {
+      document.getElementById("previewProblemModal").classList.add("hidden");
+    }
+
+    function showHomeAuthAlert(type, msg) {
+      const el = document.getElementById("homeAuthAlert");
+      el.className = "mb-3.5 p-3 rounded-lg text-xs leading-relaxed " + (
+        type === "ok"
+          ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+          : "bg-rose-50 text-rose-800 border border-rose-200"
       );
       el.textContent = msg;
       el.classList.remove("hidden");
     }
 
-    function switchAuthMode(mode) {
-      document.getElementById("authAlert").classList.add("hidden");
+    function setHomeAuthTab(mode) {
+      document.getElementById("homeAuthAlert").classList.add("hidden");
       const isLogin = mode === "login";
-      document.getElementById("loginForm").classList.toggle("hidden", !isLogin);
-      document.getElementById("registerForm").classList.toggle("hidden", isLogin);
-      document.getElementById("tabLoginBtn").className = isLogin
+      document.getElementById("homeLoginForm").classList.toggle("hidden", !isLogin);
+      document.getElementById("homeRegisterForm").classList.toggle("hidden", isLogin);
+
+      document.getElementById("homeTabLogin").className = isLogin
         ? "py-2 text-xs font-semibold rounded-lg bg-white text-indigo-700 shadow-sm cursor-pointer"
         : "py-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-800 cursor-pointer";
-      document.getElementById("tabRegBtn").className = !isLogin
+      document.getElementById("homeTabRegister").className = !isLogin
         ? "py-2 text-xs font-semibold rounded-lg bg-white text-emerald-700 shadow-sm cursor-pointer"
         : "py-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-800 cursor-pointer";
     }
 
-    async function handleLogin(e) {
+    function updateRegisterHint() {
+      const role = document.getElementById("homeRegRole").value;
+      const label = document.getElementById("homeRegClassLabel");
+      const input = document.getElementById("homeRegClass");
+      if (role === "teacher") {
+        label.textContent = "Tổ chuyên môn / Trường";
+        input.placeholder = "VD: Tổ Tin học - THPT Đầm Dơi";
+      } else {
+        label.textContent = "Lớp";
+        input.placeholder = "VD: 10A1";
+      }
+    }
+
+    async function submitHomeLogin(e) {
       e.preventDefault();
-      const btn = document.getElementById("loginSubmitBtn");
+      const btn = document.getElementById("homeLoginBtn");
       btn.disabled = true;
       try {
         const user = await apiLogin(
-          document.getElementById("loginUsername").value,
-          document.getElementById("loginPassword").value
+          document.getElementById("homeLoginUser").value,
+          document.getElementById("homeLoginPass").value
         );
         setCurrentUser(user);
         window.location.href = user.role === "student" ? "student.html" : "teacher.html";
       } catch (err) {
-        showAuthAlert("err", err.message);
+        showHomeAuthAlert("err", err.message);
       } finally {
         btn.disabled = false;
       }
     }
 
-    async function handleRegister(e) {
+    async function submitHomeRegister(e) {
       e.preventDefault();
-      const btn = document.getElementById("regSubmitBtn");
+      const btn = document.getElementById("homeRegBtn");
       btn.disabled = true;
+      const role = document.getElementById("homeRegRole").value;
+      const full_name = document.getElementById("homeRegName").value;
+      const class_name = document.getElementById("homeRegClass").value;
+      const username = document.getElementById("homeRegUser").value;
+      const password = document.getElementById("homeRegPass").value;
+
       try {
-        const user = await apiRegisterStudent({
-          full_name: document.getElementById("regFullName").value,
-          class_name: document.getElementById("regClassName").value,
-          username: document.getElementById("regUsername").value,
-          password: document.getElementById("regPassword").value
-        });
-        setCurrentUser(user);
-        showAuthAlert("ok", "Đăng ký thành công! Đang chuyển vào trang luyện tập...");
-        setTimeout(() => { window.location.href = "student.html"; }, 800);
+        const user = await apiRegisterAccount({ username, password, full_name, class_name, role });
+        if (role === "teacher") {
+          document.getElementById("homeRegisterForm").reset();
+          updateRegisterHint();
+          showHomeAuthAlert("ok", "Đăng ký tài khoản Giáo viên thành công! Tài khoản đang ở trạng thái Chờ duyệt — vui lòng chờ Admin phê duyệt trước khi đăng nhập.");
+        } else {
+          setCurrentUser(user);
+          showHomeAuthAlert("ok", "Đăng ký thành công! Đang chuyển vào trang luyện tập...");
+          setTimeout(() => { window.location.href = "student.html"; }, 700);
+        }
       } catch (err) {
-        showAuthAlert("err", err.message);
+        showHomeAuthAlert("err", err.message);
       } finally {
         btn.disabled = false;
       }
